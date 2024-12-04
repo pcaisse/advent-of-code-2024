@@ -28,7 +28,7 @@ END {
     for(i=1; i<=NR; i++) {
         for (j=1; j<=NF; j++) {
             if (substr(a[i], j, 1) == "X") {
-                print i, j, r
+                # print i, j, r
                 r += count_xmas(i, j)
             }
         }
