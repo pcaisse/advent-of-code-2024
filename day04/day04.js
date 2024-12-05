@@ -2,40 +2,44 @@ const s = require("fs").readFileSync(process.stdin.fd).toString();
 
 const w = s.indexOf("\n") + 1;
 
-const xmas = (i, f) => {
-  const xi = i;
-  const mi = f(i);
-  const ai = f(f(i));
-  const si = f(f(f(i)));
+const upLeft = (i) => i - w - 1;
+const upRight = (i) => i - w + 1;
+const downLeft = (i) => i + w - 1;
+const downRight = (i) => i + w + 1;
+
+const xmas = (i) => {
+  const uli = upLeft(i);
+  const uri = upRight(i);
+  const dli = downLeft(i);
+  const dri = downRight(i);
+  const checkMatch = (l1, l2, l3, l4, l5) =>
+    s[uli] === l1 &&
+    s[uri] === l2 &&
+    s[i] === l3 &&
+    s[dli] === l4 &&
+    s[dri] === l5;
   return {
-    match: s[xi] === "X" && s[mi] === "M" && s[ai] === "A" && s[si] === "S",
-    indices: [xi, mi, ai, si],
+    match:
+      checkMatch("M", "S", "A", "M", "S") ||
+      checkMatch("S", "S", "A", "M", "M") ||
+      checkMatch("M", "M", "A", "S", "S") ||
+      checkMatch("S", "M", "A", "S", "M"),
+    indices: [uli, uri, i, dli, dri],
   };
 };
-
-const left = (i) => xmas(i, (x) => x - 1);
-const right = (i) => xmas(i, (x) => x + 1);
-const up = (i) => xmas(i, (x) => x - w);
-const upLeft = (i) => xmas(i, (x) => x - w - 1);
-const upRight = (i) => xmas(i, (x) => x - w + 1);
-const down = (i) => xmas(i, (x) => x + w);
-const downLeft = (i) => xmas(i, (x) => x + w - 1);
-const downRight = (i) => xmas(i, (x) => x + w + 1);
 
 const matchingIndices = new Set();
 let total = 0;
 
-[...s].forEach((c, index) =>
-  [left, right, up, upLeft, upRight, down, downLeft, downRight].forEach((f) => {
-    const { match, indices } = f(index);
-    if (match) {
-      for (const i of indices) {
-        matchingIndices.add(i);
-      }
-      total++;
+[...s].forEach((c, index) => {
+  const { match, indices } = xmas(index);
+  if (match) {
+    for (const i of indices) {
+      matchingIndices.add(i);
     }
-  })
-);
+    total++;
+  }
+});
 
 let output = "";
 for (let i = 0; i < s.length; i++) {
