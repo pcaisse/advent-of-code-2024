@@ -2,7 +2,7 @@ const input = require("fs").readFileSync(process.stdin.fd).toString();
 
 const [p1, p2] = input.split("\n\n");
 
-const g = p1
+const orderGraph = p1
   .split("\n")
   .map((line) => line.split("|"))
   .reduce((acc, [x, y]) => {
@@ -11,29 +11,43 @@ const g = p1
     return acc;
   }, {});
 
+const valuesCorrectlyOrdered = (values) => {
+  const missingValues = new Set();
+  return values.every((x, i, arr) => {
+    if (!orderGraph[x]) {
+      console.log(x, "not found");
+      missingValues.add(x);
+      return true;
+    }
+    const otherValues = arr.slice(i + 1);
+    console.log("other values", otherValues);
+    console.log("missing values", missingValues);
+    console.log("g[x]", orderGraph[x]);
+    return (
+      otherValues.every((v) => orderGraph[x].has(v)) &&
+      [...missingValues.values()].every((v) => !orderGraph[x].has(v))
+    );
+  });
+};
+
+const correctOrder = (values) => {
+  return values.sort((x, y) =>
+    orderGraph[x] && orderGraph[x].has(y)
+      ? -1
+      : orderGraph[y] && orderGraph[y].has(x)
+      ? 1
+      : 0
+  );
+};
+
 const k = p2
   .split("\n")
   .filter((x) => x)
   .map((line) => line.split(","))
-  .filter((values) => {
-    const missingValues = new Set();
-    return values.every((x, i, arr) => {
-      console.log(x, i, arr);
-      if (!g[x]) {
-        console.log(x, "not found");
-        missingValues.add(x);
-        return true;
-      }
-      const otherValues = arr.slice(i + 1);
-      console.log("other values", otherValues);
-      console.log("missing values", missingValues);
-      console.log("g[x]", g[x]);
-      return (
-        otherValues.every((v) => g[x].has(v)) &&
-        [...missingValues.values()].every((v) => !g[x].has(v))
-      );
-    });
-  });
+  .filter((values) => !valuesCorrectlyOrdered(values))
+  .map((values) => correctOrder(values));
+
+console.log(k);
 
 console.log(
   k
