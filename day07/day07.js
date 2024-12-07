@@ -2,6 +2,7 @@ const input = require("fs").readFileSync(process.stdin.fd).toString();
 
 const add = (x, y) => x + y;
 const multiply = (x, y) => x * y;
+const concat = (x, y) => Number(String(x) + String(y));
 
 const possibleResults = (terms) =>
   terms.reduce((allPossibilities, x) => {
@@ -11,6 +12,7 @@ const possibleResults = (terms) =>
       return allPossibilities.flatMap((value) => [
         add(value, x),
         multiply(value, x),
+        concat(value, x),
       ]);
     }
   }, []);
