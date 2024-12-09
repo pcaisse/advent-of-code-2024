@@ -1,94 +1,102 @@
 const s = require("fs").readFileSync(process.stdin.fd).toString();
 
-const w = s.indexOf("\n") + 1;
+const arr = s
+  .split("\n")
+  .filter((l) => l)
+  .map((line) => [...line]);
+
 let s2 = s;
 
-// do a single pass. every time you come across a given antenna type, save its position for that
-// type. if you come across another antenna of that same type, generate antinode positions and
-// increment the antinode count if the positions are within the bounds of the map. return the
-// antinode count at the end.
+const serialize = (i, j) => `${i}-${j}`;
+const deserialize = (str) => str.split("-").map(Number);
 
-function newAntinodes(i, x) {
-  console.log("compare positions", x, i);
-  let set = new Set([i, x]);
+function newAntinodes(i, j, rowIndex, colIndex, numRows, numCols) {
+  let set = new Set(); //([serialize(i, j), serialize(rowIndex, colIndex)]);
 
-  const diff = i - x;
-  console.log("diff", diff);
+  const rowDiff = i - rowIndex;
+  const colDiff = j - colIndex;
 
-  const newPos1 = x - diff;
-  console.log("newPos1", newPos1);
+  console.log("rowDiff", rowDiff, "colDiff", colDiff);
 
-  const offsetX = x % w;
-  console.log("offsetX", offsetX);
+  const newRowIndex1 = rowIndex - rowDiff;
+  const newColIndex1 = colIndex - colDiff;
 
-  const offsetI = i % w;
-  console.log("offsetI", offsetI);
+  console.log("newRowIndex1", newRowIndex1, "newColIndex1", newColIndex1);
 
-  const offsetDiff = offsetI - offsetX;
-  console.log("offsetDiff", offsetDiff);
+  const rowIsValid = (val) => val >= 0 && val < numRows;
+  const colIsValid = (val) => val >= 0 && val < numCols;
 
-  const newPosOffsetDiff = (newPos1 % w) - offsetX;
-  console.log("newPosOffsetDiff", newPosOffsetDiff);
-
-  const antinodePos1OnGrid =
-    newPos1 >= 0 &&
-    newPos1 < s.length &&
-    s[newPos1] !== "\n" &&
-    Math.abs(offsetDiff) === Math.abs(newPosOffsetDiff);
-  console.log("antinodePos1OnGrid", antinodePos1OnGrid);
-
-  if (antinodePos1OnGrid) {
-    console.log("newPos1", newPos1);
-    set.add(newPos1);
-    set = set.union(newAntinodes(newPos1, i));
+  if (rowIsValid(newRowIndex1) && colIsValid(newColIndex1)) {
+    // console.log("newRowIndex1", newRowIndex1, "newColIndex1", newColIndex1);
+    set.add(serialize(newRowIndex1, newColIndex1));
+    // set = set.union(
+    //   newAntinodes(rowIndex, colIndex, newRowIndex1, newColIndex1)
+    // );
   }
 
-  const newPos2 = i + diff;
-  console.log("newPos2", newPos2);
+  const newRowIndex2 = i + rowDiff;
+  const newColIndex2 = j + colDiff;
 
-  const newPos2OffsetDiff = (newPos2 % w) - offsetI;
-  console.log("newPos2OffsetDiff", newPos2OffsetDiff);
-
-  const antinodePos2OnGrid =
-    newPos2 >= 0 &&
-    newPos2 < s.length &&
-    s[newPos2] !== "\n" &&
-    Math.abs(offsetDiff) === Math.abs(newPos2OffsetDiff);
-  console.log("antinodePos2OnGrid", antinodePos2OnGrid);
-
-  if (antinodePos2OnGrid) {
-    console.log("newPos2", newPos2);
-    set.add(newPos2);
-    set = set.union(newAntinodes(newPos2, i));
+  if (rowIsValid(newRowIndex2) && colIsValid(newColIndex2)) {
+    // console.log("newRowIndex2", newRowIndex2, "newColIndex2", newColIndex2);
+    set.add(serialize(newRowIndex2, newColIndex2));
+    // set = set.union(
+    //   newAntinodes(rowIndex, colIndex, newRowIndex2, newColIndex2)
+    // );
   }
 
   return set;
 }
 
 let antinodes = new Set();
+
 const antennas = {};
 
-for (let i = 0; i < s.length; i++) {
-  const c = s[i];
-  if (!/[a-z0-9]/i.test(c)) {
-    continue;
-  }
-  if (!(c in antennas)) {
-    antennas[c] = [i];
-  } else {
-    for (let j = 0; j < antennas[c].length; j++) {
-      x = antennas[c][j];
-      const na = newAntinodes(i, x);
-      na.forEach(
-        (antinodeIndex) =>
-          (s2 =
+for (let i = 0; i < arr.length; i++) {
+  const row = arr[i];
+  for (let j = 0; j < row.length; j++) {
+    const c = row[j];
+    if (!/[a-z0-9]/i.test(c)) {
+      continue;
+    }
+    if (!(c in antennas)) {
+      antennas[c] = [serialize(i, j)];
+    } else {
+      for (let k = 0; k < antennas[c].length; k++) {
+        const [rowIndex, colIndex] = deserialize(antennas[c][k]);
+        console.log(
+          "c",
+          c,
+          "i",
+          i,
+          "j",
+          j,
+          "rowIndex",
+          rowIndex,
+          "colIndex",
+          colIndex
+        );
+        const na = newAntinodes(
+          i,
+          j,
+          rowIndex,
+          colIndex,
+          arr.length,
+          row.length
+        );
+        console.log("na", na);
+        na.forEach((antinodeStr) => {
+          const [rowIndex, colIndex] = deserialize(antinodeStr);
+          const antinodeIndex = rowIndex * (row.length + 1) + colIndex;
+          s2 =
             s2.substring(0, antinodeIndex) +
             "#" +
-            s2.substring(antinodeIndex + 1))
-      );
-      antinodes = antinodes.union(na);
+            s2.substring(antinodeIndex + 1);
+        });
+        antinodes = antinodes.union(na);
+      }
+      antennas[c].push(serialize(i, j));
     }
-    antennas[c].push(i);
   }
 }
 
