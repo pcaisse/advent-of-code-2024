@@ -1,59 +1,68 @@
 const s = require("fs").readFileSync(process.stdin.fd).toString();
 
-let blocks = [...s.trim()].flatMap((c, index) => {
-  const n = Number(c);
-  const id = Math.floor(index / 2);
-  const isFreeSpace = index % 2 === 1;
-  const ch = isFreeSpace ? "." : String(id);
-  return Array(n).fill(ch);
-});
+let blocks = [...s.trim()]
+  .map((c, index) => {
+    const n = Number(c);
+    const id = Math.floor(index / 2);
+    const isFreeSpace = index % 2 === 1;
+    return {
+      type: isFreeSpace ? "free" : "file",
+      size: n,
+      id: isFreeSpace ? null : id,
+      index,
+    };
+  })
+  .filter((o) => o.size);
 
-// console.log("blocks", blocks);
-
-const numFreeSpaces = blocks.reduce(
-  (total, ch) => (ch === "." ? total + 1 : total),
-  0
-);
-
-// console.log("numFreeSpaces", numFreeSpaces);
-
-// NOTE: number of dots is conserved!
-// iterate once for each dot
-// each iteration, find the leftmost and rightmost dot (maintain index for each)
-// then switch the characters at each of those index and continue
-
-let lastNonDotCharIndex = blocks.length - 1;
-let firstDotCharIndex = 0;
-
-while (lastNonDotCharIndex > firstDotCharIndex) {
-  // console.log("blocks", blocks);
-  while (blocks[lastNonDotCharIndex] === ".") {
-    lastNonDotCharIndex--;
+function move(blocks, fileIndex, freeIndex) {
+  const file = blocks[fileIndex];
+  const free = blocks[freeIndex];
+  if (file.size > free.size) {
+    throw `file size ${file.size} is greater than free size ${free.size}`;
   }
-  while (blocks[firstDotCharIndex] !== ".") {
-    firstDotCharIndex++;
+  const cleanSwap = file.size === free.size;
+  if (cleanSwap) {
+    // clean swap
+    blocks[fileIndex] = free;
+    blocks[freeIndex] = file;
+  } else {
+    // extra free space
+    blocks[freeIndex].size -= file.size;
+    blocks[fileIndex] = { type: "free", size: file.size }; // TODO: merge with surrounding free space??
+    blocks.splice(freeIndex, 0, file);
   }
-  // console.log(
-  // "lastNonDotCharIndex",
-  // lastNonDotCharIndex,
-  // "lastNonDotChar",
-  // blocks[lastNonDotCharIndex]
-  // );
-  // console.log(
-  // "firstDotCharIndex",
-  // firstDotCharIndex,
-  // "firstDotChar",
-  // blocks[firstDotCharIndex]
-  // );
-  blocks[firstDotCharIndex] = blocks[lastNonDotCharIndex];
-  blocks[lastNonDotCharIndex] = ".";
+  return cleanSwap;
 }
 
-console.log("blocks", blocks.join(""));
+for (let j = blocks.length - 1; j >= 0; j--) {
+  if (blocks[j].type !== "file") continue;
 
-const checksum = blocks
-  .filter((c) => c !== ".")
-  .map((c, i) => Number(c) * i)
+  const nextLargestFile = blocks[j];
+
+  for (let i = 0; i < j; i++) {
+    if (blocks[i].type !== "free") continue;
+
+    const nextFree = blocks[i];
+    const freeSize = nextFree.size;
+
+    if (nextLargestFile.size <= freeSize) {
+      const isCleanSwap = move(blocks, j, i);
+      if (!isCleanSwap) {
+        j++;
+      }
+      break;
+    }
+  }
+}
+
+function blockChars() {
+  return blocks.flatMap((block) =>
+    Array(block.size).fill(block.type === "file" ? block.id : ".")
+  );
+}
+
+const checksum = blockChars()
+  .map((c, i) => (c === "." ? 0 : Number(c) * i))
   .reduce((a, b) => a + b, 0);
 
 console.log(checksum);
