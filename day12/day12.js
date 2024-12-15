@@ -15,20 +15,65 @@ function walk(index, groupId, group) {
   const value = s[index];
 
   const area = 1;
-  let perimeter = 4;
-  for (const func of [left, right, up, down]) {
-    if (s[func(index)] === value) {
-      perimeter--;
-    }
-  }
-  group.push({ index, groupId, area, perimeter });
-
-  // console.log(visited, group);
 
   const leftIndex = left(index);
   const rightIndex = right(index);
   const upIndex = up(index);
   const downIndex = down(index);
+
+  let leftSide = 1;
+  let rightSide = 1;
+  let topSide = 1;
+  let bottomSide = 1;
+  if (s[leftIndex] === value) {
+    leftSide = 0;
+  }
+  if (
+    s[upIndex] === value &&
+    s[leftIndex] !== value &&
+    s[left(upIndex)] !== value
+  ) {
+    leftSide = 0; // left side continuation
+  }
+  if (s[rightIndex] === value) {
+    rightSide = 0;
+  }
+  if (
+    s[upIndex] === value &&
+    s[rightIndex] !== value &&
+    s[right(upIndex)] !== value
+  ) {
+    rightSide = 0; // right side continuation
+  }
+  if (s[upIndex] === value) {
+    topSide = 0;
+  }
+  if (
+    s[leftIndex] === value &&
+    s[upIndex] !== value &&
+    s[up(leftIndex)] !== value
+  ) {
+    topSide = 0; // top side continuation
+  }
+  if (s[downIndex] === value) {
+    bottomSide = 0;
+  }
+  if (
+    s[leftIndex] === value &&
+    s[downIndex] !== value &&
+    s[down(leftIndex)] !== value
+  ) {
+    bottomSide = 0; // bottom side continuation
+  }
+  group.push({
+    index,
+    groupId,
+    area,
+    leftSide,
+    rightSide,
+    topSide,
+    bottomSide,
+  });
 
   if (s[leftIndex] === value && !visited.has(leftIndex))
     walk(leftIndex, groupId, group);
@@ -61,13 +106,14 @@ const counts = Object.keys(groupedTotals)
     groupedTotals[key].reduce(
       (acc, curr) => {
         acc.area += curr.area;
-        acc.perimeter += curr.perimeter;
+        acc.sides +=
+          curr.leftSide + curr.rightSide + curr.topSide + curr.bottomSide;
         return acc;
       },
-      { area: 0, perimeter: 0 }
+      { area: 0, sides: 0 }
     )
   )
-  .map(({ area, perimeter }) => area * perimeter)
+  .map(({ area, sides }) => area * sides)
   .reduce((a, b) => a + b, 0);
 
 console.log(counts);
